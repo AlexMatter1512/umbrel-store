@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Surf on Umbrel</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/ui.js" defer></script>
+</head>
+<body>
+  <main>
+    <header><span class="eyebrow">SURF HOME</span><h1>A new life for your iPad.</h1>
+      <p>Pair Surf, open your dashboard, and leave the browser work to Umbrel.</p></header>
+    <div id="status" role="status">Connecting to Surf…</div>
+    <section>
+      <h2>1. Choose your dashboard</h2>
+      <form id="settings">
+        <label for="dashboard-url">Home Assistant dashboard URL</label>
+        <input id="dashboard-url" type="url" required placeholder="http://127.0.0.1:8123/lovelace/0">
+        <p class="hint">This URL opens on Umbrel. For Home Assistant on the same Umbrel, use 127.0.0.1:8123. Paste your dashboard path, such as /dashboard-tablet/0.</p>
+        <label for="public-address">Umbrel LAN address for the iPad</label>
+        <input id="public-address" placeholder="192.168.1.50:18080">
+        <p class="hint">Recommended: Umbrel's LAN IP followed by :18080. Leave blank to use the hostname you opened this page with.</p>
+        <label class="check"><input id="adaptive" type="checkbox"> Adapt frame rate for older iPads</label>
+        <button type="submit">Save and open dashboard</button>
+        <p class="hint">Restarts Surf and changes the active tab. The iPad reconnects; logins and paired devices are kept.</p>
+      </form>
+    </section>
+    <section>
+      <h2>2. Pair your iPad</h2>
+      <p>Open Surf on your iPad and add a server. Create a code here, then enter the address and code on the iPad.</p>
+      <button id="pair" disabled>Create pairing code</button>
+      <button id="cancel" class="secondary" hidden>Cancel pairing</button>
+      <div id="invitation" hidden><p>Server address <strong id="address"></strong></p><p>Pairing code <strong id="code"></strong></p>
+        <p>One use. Five incorrect attempts cancel the code.</p></div>
+      <div id="candidates" aria-live="polite"></div>
+      <p class="hint">Compare the six words shown here and on your iPad. Confirm on the iPad only when they match.</p>
+    </section>
+    <section><h2>3. Sign in to Home Assistant</h2>
+      <p>Once paired, the dashboard opens in Surf on the iPad. Sign in there with your Home Assistant account, then bookmark your dashboard and enable fullscreen in Surf.</p>
+      <p class="hint">Home Assistant login cookies are saved on Umbrel in Surf's browser profile. Keep the iPad and Umbrel on the same reachable network.</p>
+      <h3>Paired devices</h3><div id="devices">No paired devices yet.</div>
+    </section>
+    <footer>Surf uses port 18080 for the iPad connection and 18081 for this setup page. <a href="https://github.com/seg6/surf" target="_blank" rel="noopener">Surf documentation ↗</a></footer>
+  </main>
+</body>
+</html>

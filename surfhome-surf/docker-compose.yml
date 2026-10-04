@@ -1,0 +1,36 @@
+version: "3.7"
+
+services:
+  server:
+    # A public base image makes this store installable before publishing a custom image.
+    # bootstrap.sh provisions dependencies once per container creation.
+    image: python:3.13-slim-trixie@sha256:3dd7cc108ec1493442514f5c2a871af6af0ec31d768ff6e378a93340c3b3db5f
+    network_mode: host
+    init: true
+    restart: on-failure
+    stop_grace_period: 45s
+    shm_size: "1gb"
+    environment:
+      SURF_HOME: /data/surf
+      SURF_SERVER_NAME: Surf on Umbrel
+      PORT: "18080"
+      BIND_ADDR: 0.0.0.0
+      DASHBOARD_PORT: "18081"
+      DASHBOARD_PASSWORD: ${APP_PASSWORD}
+      START_URL: http://127.0.0.1:8123/lovelace/0
+      SURF_ADAPTIVE_VIDEO: "1"
+      # Chromium's namespace sandbox is unavailable in a normal Docker container.
+      # Surf and Chromium still run as UID 1000, without privileged host access.
+      CHROME_NO_SANDBOX: "1"
+      PYTHONUNBUFFERED: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+    volumes:
+      - ${APP_DATA_DIR}/data:/data
+      - ${APP_DATA_DIR}/runtime:/opt/surf-umbrel:ro
+    entrypoint: ["/bin/sh", "/opt/surf-umbrel/bootstrap.sh"]
+    healthcheck:
+      test: ["CMD", "python3", "/opt/surf-umbrel/healthcheck.py"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15m
+      retries: 3

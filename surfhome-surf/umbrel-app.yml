@@ -1,0 +1,37 @@
+manifestVersion: 1
+id: surfhome-surf
+name: Surf
+tagline: Your Home Assistant dashboard on an older iPad
+icon: https://raw.githubusercontent.com/seg6/surf/v0.17.0/backend/cmd/surf/surf-icon.png
+category: automation
+version: "0.17.0-1"
+port: 18081
+description: >-
+  Run Surf's modern Chromium browser on Umbrel and stream it to the native
+  Surf app on your iPad. Host networking provides Bonjour discovery and direct
+  access to Home Assistant on this Umbrel at http://127.0.0.1:8123.
+
+
+  Open this app to pair your iPad and choose your Home Assistant dashboard URL.
+  Sign in as admin with the generated password shown by Umbrel. Sign into Home
+  Assistant separately inside Surf on the iPad; its browser session persists.
+
+
+  First startup downloads the verified Surf release and installs Chromium and
+  fonts, which can take several minutes. Internet access is required for setup.
+  Supports 64-bit Intel/AMD and ARM Umbrel hosts. The iPad must already have the
+  native Surf app installed. Device connections use Surf's own TLS on port 18080.
+developer: seg6
+website: https://github.com/seg6/surf
+submitter: Surf Home
+submission: https://github.com/seg6/surf
+repo: https://github.com/seg6/surf
+support: https://github.com/seg6/surf/issues
+gallery: []
+releaseNotes: >-
+  Initial community package with host networking, persistent Surf identity and
+  browser profile, browser-based pairing and dashboard settings, and adaptive video.
+dependencies: []
+path: ""
+defaultUsername: admin
+deterministicPassword: true
