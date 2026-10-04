@@ -39,7 +39,12 @@ fi
 # Do not force an incompatible browser: Surf requires Chromium >=148 and will
 # install its own SHA-256-verified managed browser if Debian's is older.
 echo "Installed browser: $(chromium --version)"
-chown 1000:1000 /data /data/surf
+mkdir -p /data/surf/.config /data/surf/.cache
+chown 1000:1000 /data /data/surf /data/surf/.config /data/surf/.cache
 if [ "${1:-}" = '--install-only' ]; then exit 0; fi
-export HOME=/data
-exec gosu 1000:1000 python3 /opt/surf-umbrel/proxy.py
+# gosu resets HOME to / for this numeric UID (there is no passwd entry).
+# Set the browser's writable home/config directories after dropping privileges;
+# otherwise amd64 Chromium's Crashpad handler exits before publishing DevTools.
+exec gosu 1000:1000 env HOME=/data \
+  XDG_CONFIG_HOME=/data/surf/.config XDG_CACHE_HOME=/data/surf/.cache \
+  python3 /opt/surf-umbrel/proxy.py

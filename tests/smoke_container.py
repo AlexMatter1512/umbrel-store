@@ -1,4 +1,4 @@
-"""Run only inside a fresh disposable Surf test container."""
+"""Run as UID 1000, only inside a fresh disposable Surf test container."""
 import base64
 import json
 import os
@@ -33,6 +33,20 @@ def ready():
             time.sleep(1)
     raise AssertionError("Surf did not become ready")
 
+
+# Check the service's real environment, not docker exec's inherited HOME.
+assert os.geteuid() == 1000, "Run with docker exec -u 1000:1000"
+service = next(path for path in Path("/proc").iterdir()
+               if path.name.isdigit() and (path / "cmdline").exists()
+               and b"/opt/surf-umbrel/proxy.py" in (path / "cmdline").read_bytes().split(b"\0"))
+environment = dict(item.split(b"=", 1) for item in (service / "environ").read_bytes().split(b"\0") if b"=" in item)
+assert service.stat().st_uid == 1000
+assert environment[b"HOME"] == b"/data"
+for variable in (b"XDG_CONFIG_HOME", b"XDG_CACHE_HOME"):
+    directory = Path(os.fsdecode(environment[variable]))
+    assert directory.is_relative_to(HOME) and directory.is_dir()
+    assert directory.stat().st_uid == 1000
+print("PASS: unprivileged Surf service has persistent writable home/config/cache directories")
 
 state = ready()
 identity = state["serverID"]

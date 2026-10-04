@@ -4,7 +4,7 @@ name: Surf
 tagline: Bring the modern web to your older iOS devices
 icon: https://raw.githubusercontent.com/seg6/surf/v0.17.0/backend/cmd/surf/surf-icon.png
 category: networking
-version: "0.17.0-3"
+version: "0.17.0-4"
 port: 18081
 description: >-
   Run Surf's modern Chromium browser on Umbrel and stream websites to the native
@@ -30,8 +30,7 @@ repo: https://github.com/seg6/surf
 support: https://github.com/seg6/surf/issues
 gallery: []
 releaseNotes: >-
-  Uses Surf's original bundled web interface instead of a custom setup page.
-  Uses upstream browsing defaults and opens directly without a login.
-  Host networking and persistent data are retained.
+  Fixes Chromium startup failures caused by an unwritable home directory for
+  its crash handler. Surf's original interface still opens without a login.
 dependencies: []
 path: ""

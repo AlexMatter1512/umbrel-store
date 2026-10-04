@@ -21,6 +21,7 @@ Browse normally in the iOS app. Surf manages tabs, bookmarks, history and websit
 - Surf's native desktop process provides its web interface and owns the browser/backend lifecycle.
 - A small HTTP proxy exposes the private loopback interface on Umbrel's app port. It forwards native HTML, scripts, API routes and streaming logs without modifying the interface. There is no authentication layer or Umbrel app-proxy login.
 - Persistent Surf data under `${APP_DATA_DIR}/data/surf`.
+- Writable Chromium config and cache directories inside Surf's persistent data.
 - Ordinary container privileges; Surf runs as UID/GID 1000:1000. Chromium's namespace sandbox is disabled for Docker compatibility, and shared memory is set to 1 GiB.
 
 No custom front end, start page, browsing features or website-specific configuration is included.
@@ -57,6 +58,16 @@ docker exec -it -u 1000:1000 surfhome-surf_server_1 surf pair
 docker exec -it -u 1000:1000 surfhome-surf_server_1 surf devices list
 ```
 
+If the interface reports that the backend is not running, read Surf's native startup logs:
+
+```sh
+docker exec surfhome-surf_server_1 sh -c 'tail -n 80 /data/surf/logs/desktop.log /data/surf/logs/server.log'
+```
+
+Package `0.17.0-4` fixes the `chrome_crashpad_handler: --database is required`
+startup failure by setting a writable home and XDG directories after `gosu`
+drops privileges. Upgrade the app through Umbrel to apply it.
+
 ## Development
 
 ```sh
@@ -70,7 +81,7 @@ Run the smoke test only in a fresh disposable container, never an installed app:
 ```sh
 docker run -d --name surf-package-test --init --network host --shm-size 1g surf-umbrel:0.17.0
 docker cp tests/smoke_container.py surf-package-test:/tmp/smoke_container.py
-docker exec surf-package-test python3 /tmp/smoke_container.py
+docker exec -u 1000:1000 surf-package-test python3 /tmp/smoke_container.py
 docker rm -f surf-package-test
 ```
 
