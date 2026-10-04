@@ -22,7 +22,8 @@ services:
       PYTHONDONTWRITEBYTECODE: "1"
     volumes:
       - ${APP_DATA_DIR}/data:/data
-      - ${APP_DATA_DIR}/runtime:/opt/surf-umbrel:ro
+      # Umbrel refreshes hooks/ on upgrades; arbitrary package directories stay stale.
+      - ${APP_DATA_DIR}/hooks/runtime:/opt/surf-umbrel:ro
     entrypoint: ["/bin/sh", "/opt/surf-umbrel/bootstrap.sh"]
     healthcheck:
       test: ["CMD", "python3", "/opt/surf-umbrel/healthcheck.py"]

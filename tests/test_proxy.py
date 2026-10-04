@@ -8,7 +8,7 @@ from unittest.mock import patch
 import urllib.error
 import urllib.request
 
-spec = importlib.util.spec_from_file_location("proxy", Path(__file__).resolve().parents[1] / "surfhome-surf/runtime/proxy.py")
+spec = importlib.util.spec_from_file_location("proxy", Path(__file__).resolve().parents[1] / "surfhome-surf/hooks/runtime/proxy.py")
 proxy = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(proxy)
 HTML = b"<!doctype html><title>Original Surf</title><script>nativeUi()</script>"

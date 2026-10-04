@@ -64,9 +64,12 @@ If the interface reports that the backend is not running, read Surf's native sta
 docker exec surfhome-surf_server_1 sh -c 'tail -n 80 /data/surf/logs/desktop.log /data/surf/logs/server.log'
 ```
 
-Package `0.17.0-4` fixes the `chrome_crashpad_handler: --database is required`
-startup failure by setting a writable home and XDG directories after `gosu`
-drops privileges. Upgrade the app through Umbrel to apply it.
+Package `0.17.0-5` delivers the `chrome_crashpad_handler: --database is required`
+startup fix by setting a writable home and XDG directories after `gosu`
+drops privileges. Runtime files live in `hooks/runtime/`, which Umbrel refreshes
+on upgrades; the earlier top-level `runtime/` directory was only copied on
+installation. Upgrade the app through Umbrel to `0.17.0-5` to apply the fix,
+including when `0.17.0-4` was already installed. Existing Surf data is retained.
 
 ## Development
 
@@ -89,4 +92,4 @@ Docker Desktop needs host-network support enabled. To distribute an optional pre
 
 See [VALIDATION.md](VALIDATION.md) for test coverage and [Surf's documentation](https://github.com/seg6/surf/blob/v0.17.0/docs/backend.md) for native features.
 
-This community packaging is MIT licensed. Upstream Surf's license and notices are retained in `runtime/`. This is not an official Surf or Umbrel release.
+This community packaging is MIT licensed. Upstream Surf's license and notices are retained in `hooks/runtime/`. This is not an official Surf or Umbrel release.
