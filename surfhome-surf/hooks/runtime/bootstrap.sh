@@ -39,6 +39,10 @@ fi
 # Do not force an incompatible browser: Surf requires Chromium >=148 and will
 # install its own SHA-256-verified managed browser if Debian's is older.
 echo "Installed browser: $(chromium --version)"
+# Surf discovers this wrapper through PATH and still checks Chromium's version.
+# Cleanup runs immediately before browser launches, including backend restarts
+# and the first launch after Surf downloads its content-blocker extension.
+install -m 755 /opt/surf-umbrel/chromium.sh /usr/local/bin/chromium
 mkdir -p /data/surf/.config /data/surf/.cache
 chown 1000:1000 /data /data/surf /data/surf/.config /data/surf/.cache
 if [ "${1:-}" = '--install-only' ]; then exit 0; fi

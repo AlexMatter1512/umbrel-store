@@ -71,6 +71,11 @@ on upgrades; the earlier top-level `runtime/` directory was only copied on
 installation. Upgrade the app through Umbrel to `0.17.0-5` to apply the fix,
 including when `0.17.0-4` was already installed. Existing Surf data is retained.
 
+Package `0.17.0-6` also removes generated `_metadata` directories from Surf's
+cached uBlock Origin Lite extension before each Chromium launch. This fixes
+the reserved-filename error when the extension is loaded through CDP, including
+after backend restarts. Chromium receives Surf's original launch arguments.
+
 ## Development
 
 ```sh

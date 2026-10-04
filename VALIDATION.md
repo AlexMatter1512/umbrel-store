@@ -1,5 +1,9 @@
 # Validation — 2026-10-04
 
+Package `0.17.0-6` adds cleanup of generated uBlock Origin Lite `_metadata`
+directories before Chromium launches. No tests or container runs were performed
+for this change, as explicitly requested. The results below cover prior versions.
+
 Validated locally in Docker Desktop's ARM64 Linux VM, with additional amd64
 container tests under emulation for package `0.17.0-4`:
 
