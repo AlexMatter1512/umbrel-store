@@ -1,19 +1,19 @@
 # Validation — 2026-10-04
 
-Passed locally using Docker Desktop's ARM64 Linux VM:
+Validated locally in Docker Desktop's ARM64 Linux VM:
 
-- Docker image build with the official Surf 0.17.0 ARM64 release and a verified archive checksum.
-- Chromium 154.0.8037.92 installed from Debian's repository; Surf selected system Chromium successfully.
-- Headless Surf startup, native TLS listener, Bonjour advertisement and embedded iOS client bundle.
-- Actual `network_mode: host`, ordinary container privileges, 1 GiB shared memory and UID 1000 ownership of Surf data.
-- Six setup-server tests: authentication, CSRF, URL validation, private persistent settings, pairing API delegation and TLS fingerprint rejection before sending the control token.
-- Real TLS pairing with a generated RSA device key, a matching six-word phrase and rejection of invitation reuse by another key.
-- Dashboard settings save restarted the actual Surf process and preserved both its identity and the test paired device.
-- Chromium loaded and rendered a local HTTP dashboard fixture through loopback.
-- Device revocation and pairing cancellation.
-- Full container restart retained the identity and settings and returned a healthy backend.
-- Compose parsing, shell and JavaScript syntax checks.
-- The pinned public base image manifest includes linux/amd64 and linux/arm64.
-- Umbrel's current source confirms package files are copied to APP_DATA_DIR, host networking is supported, and deterministic app credentials are displayed by the UI.
+- Unmodified official Surf 0.17.0 running in desktop mode without a graphical desktop.
+- System Chromium 154, native TLS listener, Bonjour advertisement and embedded iOS client bundle.
+- Original bundled web interface forwarded byte for byte from Surf's private loopback server.
+- Interface and native management API open without credentials, with rejection of cross-origin mutations.
+- Native pairing API, QR payload, matching six-word phrase, and rejection of code reuse by another client key.
+- Native backend restart preserving the server identity and paired device.
+- Native device revocation, pairing cancellation and log-source API through the adapter.
+- Six unit tests covering unchanged HTML, access without login, CSRF, request-body forwarding, credential stripping, loopback target validation and health-response privacy.
+- Compose parsing, shell syntax and whitespace checks.
+- Host networking, ordinary container privileges and a 1 GiB shared-memory allowance.
+- The pinned public base image supports linux/amd64 and linux/arm64.
 
-Limits: the amd64 runtime has not been executed locally. The package has not been installed on the target Umbrel, connected to the physical iPad, or authenticated against the user's actual Home Assistant. The localhost fixture verifies browser routing and navigation, not end-to-end iPad video/audio quality. First-start provisioning downloads dependencies rather than using an already-published custom image.
+No custom front end or website-specific behavior remains. Surf uses its upstream browsing defaults.
+
+Limits: amd64 runtime, installation on the target Umbrel, and streaming to the physical iOS device have not been tested locally. The package provides native web management and headless streaming; Surf's local Browser setup action still requires a desktop session. Updates to the packaged root-owned host executable are managed through Umbrel.

@@ -42,4 +42,4 @@ echo "Installed browser: $(chromium --version)"
 chown 1000:1000 /data /data/surf
 if [ "${1:-}" = '--install-only' ]; then exit 0; fi
 export HOME=/data
-exec gosu 1000:1000 python3 /opt/surf-umbrel/app.py
+exec gosu 1000:1000 python3 /opt/surf-umbrel/proxy.py

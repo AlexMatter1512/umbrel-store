@@ -1,20 +1,21 @@
 manifestVersion: 1
 id: surfhome-surf
 name: Surf
-tagline: Your Home Assistant dashboard on an older iPad
+tagline: Bring the modern web to your older iOS devices
 icon: https://raw.githubusercontent.com/seg6/surf/v0.17.0/backend/cmd/surf/surf-icon.png
-category: automation
-version: "0.17.0-1"
+category: networking
+version: "0.17.0-3"
 port: 18081
 description: >-
-  Run Surf's modern Chromium browser on Umbrel and stream it to the native
-  Surf app on your iPad. Host networking provides Bonjour discovery and direct
-  access to Home Assistant on this Umbrel at http://127.0.0.1:8123.
+  Run Surf's modern Chromium browser on Umbrel and stream websites to the native
+  Surf app on older iPhones, iPod touches and iPads. Host networking supports
+  direct LAN connections and Bonjour discovery.
 
 
-  Open this app to pair your iPad and choose your Home Assistant dashboard URL.
-  Sign in as admin with the generated password shown by Umbrel. Sign into Home
-  Assistant separately inside Surf on the iPad; its browser session persists.
+  Open this app for Surf's original bundled web interface: pairing, settings,
+  device management, logs and clipboard controls.
+  The interface opens directly without a login. Surf's identity, paired devices
+  and browser profile persist across restarts.
 
 
   First startup downloads the verified Surf release and installs Chromium and
@@ -23,15 +24,14 @@ description: >-
   native Surf app installed. Device connections use Surf's own TLS on port 18080.
 developer: seg6
 website: https://github.com/seg6/surf
-submitter: Surf Home
+submitter: Community
 submission: https://github.com/seg6/surf
 repo: https://github.com/seg6/surf
 support: https://github.com/seg6/surf/issues
 gallery: []
 releaseNotes: >-
-  Initial community package with host networking, persistent Surf identity and
-  browser profile, browser-based pairing and dashboard settings, and adaptive video.
+  Uses Surf's original bundled web interface instead of a custom setup page.
+  Uses upstream browsing defaults and opens directly without a login.
+  Host networking and persistent data are retained.
 dependencies: []
 path: ""
-defaultUsername: admin
-deterministicPassword: true

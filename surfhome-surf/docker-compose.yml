@@ -12,13 +12,9 @@ services:
     shm_size: "1gb"
     environment:
       SURF_HOME: /data/surf
-      SURF_SERVER_NAME: Surf on Umbrel
       PORT: "18080"
       BIND_ADDR: 0.0.0.0
       DASHBOARD_PORT: "18081"
-      DASHBOARD_PASSWORD: ${APP_PASSWORD}
-      START_URL: http://127.0.0.1:8123/lovelace/0
-      SURF_ADAPTIVE_VIDEO: "1"
       # Chromium's namespace sandbox is unavailable in a normal Docker container.
       # Surf and Chromium still run as UID 1000, without privileged host access.
       CHROME_NO_SANDBOX: "1"

@@ -1,62 +1,55 @@
-# Surf Home — Umbrel community app store
+# Surf Community Store
 
-A custom Umbrel app that runs [Surf](https://github.com/seg6/surf) in **host network mode** and streams Home Assistant to your existing Surf iPad client. This repository follows the [Umbrel community-store template](https://github.com/getumbrel/umbrel-community-app-store).
+A community Umbrel package for [Surf](https://github.com/seg6/surf), using its **original bundled web interface and browsing defaults**.
 
-## Install on Umbrel
+## Install
 
-1. Push **this entire repository** to a GitHub repository you control. Keep `umbrel-app-store.yml` at the repository root. No Docker registry account or image publication is required.
-2. In Umbrel, open **App Store → Community App Stores**, add that GitHub repository URL, and install **Surf** from **Surf Home**.
-3. Allow several minutes for the first startup. It installs Chromium and fonts and downloads the checksum-verified Surf 0.17.0 release. If Debian's Chromium is below Surf's required version 148, Surf downloads its own verified managed Chromium. Setup needs outbound access to Debian, GitHub and release download servers.
-4. Open Surf from Umbrel. The setup page is also at `http://UMBREL_LAN_IP:18081`. Use username **admin** and the generated password shown in Umbrel's app credentials.
-5. Set **Umbrel LAN address** to `UMBREL_LAN_IP:18080` (for example `192.168.1.50:18080`). Use a DHCP reservation for a stable address.
-6. Set the dashboard URL, then click **Save and open dashboard**. The default is `http://127.0.0.1:8123/lovelace/0`. For a custom dashboard use its real path, for example `http://127.0.0.1:8123/dashboard-tablet/0`.
-7. Click **Create pairing code**. On your iPad, add that server address in Surf and enter the six-digit code. Compare the six words on both screens and confirm on the iPad.
-8. Sign into Home Assistant **inside Surf on the iPad**, bookmark the dashboard, and enable Surf fullscreen. Surf preserves the browser profile, cookies, identity and paired devices across restarts and updates.
+1. Push this repository to GitHub, keeping `umbrel-app-store.yml` at the root.
+2. Add its GitHub URL under **Umbrel → App Store → Community App Stores**.
+3. Install **Surf** from **Surf Community Store**.
+4. Wait for first-start provisioning, then open Surf in Umbrel.
 
-The iPad uses **Umbrel's LAN IP**, while the dashboard URL is resolved by **Chromium on Umbrel**. Because both Surf and [Umbrel's Home Assistant app](https://github.com/getumbrel/umbrel-apps/blob/master/home-assistant/docker-compose.yml) use host networking, `127.0.0.1:8123` reaches Home Assistant. A Home Assistant container on a different port or machine needs its corresponding URL. Surf does not require Home Assistant as an app dependency, so it can also display another local web dashboard.
+The original Surf interface opens directly at `http://UMBREL_LAN_IP:18081`, without an app login or Umbrel login. Use its **Settings** to set the public address to `UMBREL_LAN_IP:18080`, then choose **Pair device** under **Paired Devices**. Scan the QR code or enter the address and code in the iOS app, compare the six words, and confirm on the device.
 
-## What's included
+Browse normally in the iOS app. Surf manages tabs, bookmarks, history and website logins.
 
-- Store ID `surfhome`, app ID `surfhome-surf`.
-- Surf 0.17.0, verified against fixed SHA-256 hashes for **linux/amd64** and **linux/arm64**.
-- A digest-pinned, multi-architecture Python/Debian base image, Chromium, CA certificates, Unicode and emoji fonts.
-- Headless Chromium: no desktop, Xvfb, VNC, FFmpeg or PulseAudio required.
-- Password-protected setup page with single-use pairing codes, six-word verification, device revocation, dashboard URL settings and adaptive video.
-- A supervisor that restarts Surf if it exits and shuts it down cleanly for profile persistence.
-- A 1 GiB shared-memory allowance for Chromium. No privileged mode, Docker socket, host PID namespace or host filesystem mounts.
+## Umbrel integration
 
-Surf and the setup server run as UID/GID **1000:1000** after provisioning. Provisioning needs container root to install packages. Chromium runs with `CHROME_NO_SANDBOX=1` because its namespace sandbox is normally unavailable in Docker; the container still has ordinary Docker isolation. Host networking gives Surf access to services on the host.
+- Unmodified Surf 0.17.0 official binary, with fixed SHA-256 checksums for linux/amd64 and linux/arm64.
+- Host networking for direct LAN access and Bonjour discovery.
+- Chromium, certificates, Unicode and emoji fonts.
+- Surf's native desktop process provides its web interface and owns the browser/backend lifecycle.
+- A small HTTP proxy exposes the private loopback interface on Umbrel's app port. It forwards native HTML, scripts, API routes and streaming logs without modifying the interface. There is no authentication layer or Umbrel app-proxy login.
+- Persistent Surf data under `${APP_DATA_DIR}/data/surf`.
+- Ordinary container privileges; Surf runs as UID/GID 1000:1000. Chromium's namespace sandbox is disabled for Docker compatibility, and shared memory is set to 1 GiB.
 
-## Ports and data
+No custom front end, start page, browsing features or website-specific configuration is included.
+
+The store ID `surfhome` and app ID `surfhome-surf` remain stable for upgrades; the store is named **Surf Community Store**.
+
+## Runtime requirements
+
+The public Python/Debian base image is digest-pinned. First startup installs Chromium and downloads verified Surf binaries, so outbound access to Debian and GitHub is required. Surf requires Chromium >=148 and can download its own verified managed browser when the installed version is older.
+
+Normal restarts reuse installed packages. Container recreation provisions packages again, with release archives cached under `data/runtime`. The optional Dockerfile preinstalls these dependencies for faster startup.
 
 | Port | Purpose |
 | --- | --- |
-| TCP 18080 | Surf's native TLS connection from the iPad |
-| TCP 18081 | Password-protected HTTP setup page |
-| UDP 5353 | Surf Bonjour/mDNS discovery on the host network |
+| TCP 18080 | Surf's native TLS connection |
+| TCP 18081 | Direct access to Surf's web interface |
+| UDP 5353 | Bonjour/mDNS |
 
-Ports 18080 and 18081 must be free. Permit TCP 18080 from the iPad's network. Bonjour discovery may not cross VLANs; manual pairing works when the iPad can reach the address. Use the setup page on a trusted LAN; its HTTP Basic authentication is not encrypted. Keep these ports off the public internet. Surf's native iPad connection uses its own TLS and pinned identity, so do not place Umbrel's login proxy in front of port 18080.
+Ports 18080 and 18081 must be free. Anyone who can reach port 18081 can use Surf's management interface. Keep it on your trusted LAN. Surf's native device connection uses its own TLS and pinned server identity.
 
-Everything persistent is under `${APP_DATA_DIR}/data`:
+## Data and operations
 
-```text
-settings.json           Dashboard URL, public address, adaptive video
-surf/                   TLS identity, paired devices, Chromium profile,
-                        browser session, bookmarks, downloads, logs
-runtime/                Verified release archive cache
-```
+Back up `data/surf` with the app stopped. It contains the identity, paired devices, desktop settings, browser profile, tabs, bookmarks, downloads and logs. Resetting the identity requires pairing again.
 
-Back up the full data directory while the app is stopped. Removing `surf/identity` or resetting app data changes the identity and requires pairing again. Saving dashboard settings restarts Surf and replaces the **active tab** with the dashboard; other tabs and browser login data are retained. Home Assistant's own session expiry still applies. First launch opens the default dashboard, while ordinary restarts restore Surf's existing tabs.
+Upgrading from the earlier custom-page package preserves Surf data. Its old `data/settings.json` is ignored.
 
-## Troubleshooting
+Docker manages startup, so leave Surf's desktop **Start at login** option off. **Browser setup** requires a visible desktop session; use the iOS app to sign into websites on this headless host. Host updates should be installed through Umbrel: the root-owned packaged executable cannot be replaced by Surf's desktop self-update installer as UID 1000.
 
-- **App is still starting:** the setup page becomes available after package provisioning. Use Umbrel's container logs to see apt/download progress. Chromium's first launch may download a managed browser.
-- **Dashboard won't open:** verify Home Assistant works at `http://UMBREL_LAN_IP:8123` in a modern browser. Set the correct dashboard path. Log in using Home Assistant credentials, not the Surf setup password.
-- **Pairing fails:** check TCP 18080, Wi-Fi client isolation and VLAN/firewall rules. Enter `UMBREL_LAN_IP:18080`, not `127.0.0.1`, port 8123 or port 18081. Pairings from your previous Surf host do not automatically transfer to this new host.
-- **Client compatibility error:** use an iPad client compatible with Surf 0.17.0. The official host release includes the matching iOS client bundle for Surf's authenticated client-update flow.
-- **Choppy stream:** adaptive video is enabled by default. Check Wi-Fi quality and CPU use on Umbrel; Chromium encodes the stream in software.
-
-Advanced commands from an Umbrel SSH terminal:
+CLI access, using the actual server container name if different:
 
 ```sh
 docker exec -it -u 1000:1000 surfhome-surf_server_1 surf status
@@ -64,37 +57,25 @@ docker exec -it -u 1000:1000 surfhome-surf_server_1 surf pair
 docker exec -it -u 1000:1000 surfhome-surf_server_1 surf devices list
 ```
 
-Container names can vary with umbrelOS/Compose versions; find the actual name in Umbrel if needed. CLI commands inherit the same `SURF_HOME=/data/surf` as the backend.
-
-## Development and optional prebuilt image
-
-The default package uses a public base image and provisions dependencies once per **container creation**. Normal container restarts reuse installed packages; app upgrades/recreation install them again. Release archives remain cached on the data volume. This approach makes a new personal store usable immediately without a custom published image, at the cost of slower initial setup.
-
-For a prebuilt image:
-
-```sh
-docker build -t surf-umbrel:0.17.0 .
-```
-
-Publish with `docker buildx build --platform linux/amd64,linux/arm64` to a registry you control, then replace `server.image` in `surfhome-surf/docker-compose.yml` with your public image tag and manifest digest. Leave the runtime bind mount and entrypoint in place. No workflow automatically publishes images or this repository.
-
-Validate the package without installing on Umbrel:
+## Development
 
 ```sh
 python3 -m unittest discover -s tests -v
-APP_DATA_DIR="$PWD/surfhome-surf" APP_PASSWORD=local-test-only docker compose -f surfhome-surf/docker-compose.yml config --quiet
+APP_DATA_DIR="$PWD/surfhome-surf" docker compose -f surfhome-surf/docker-compose.yml config --quiet
+docker build -t surf-umbrel:0.17.0 .
 ```
 
-See [Surf's backend documentation](https://github.com/seg6/surf/blob/v0.17.0/docs/backend.md) for protocol, browser and networking details. Upstream Surf is MIT licensed; this community packaging is also MIT licensed. This is a community package, not an official Umbrel or Surf release.
-
-The real-container smoke test is destructive only to its disposable Surf test state. Run it in a **fresh test container**, never your installed app:
+Run the smoke test only in a fresh disposable container, never an installed app:
 
 ```sh
-docker run -d --name surf-package-test --init --network host --shm-size 1g \
-  -e DASHBOARD_PASSWORD=local-test-only surf-umbrel:0.17.0
+docker run -d --name surf-package-test --init --network host --shm-size 1g surf-umbrel:0.17.0
 docker cp tests/smoke_container.py surf-package-test:/tmp/smoke_container.py
 docker exec surf-package-test python3 /tmp/smoke_container.py
 docker rm -f surf-package-test
 ```
 
-Host networking works directly on Linux. Docker Desktop needs host-network support enabled for this test. Test ports 18080 and 18081 must be free. See [VALIDATION.md](VALIDATION.md) for the checks performed here and their limits.
+Docker Desktop needs host-network support enabled. To distribute an optional prebuilt image, publish for linux/amd64 and linux/arm64 and update Compose with its public image tag and digest, retaining the runtime mount and entrypoint.
+
+See [VALIDATION.md](VALIDATION.md) for test coverage and [Surf's documentation](https://github.com/seg6/surf/blob/v0.17.0/docs/backend.md) for native features.
+
+This community packaging is MIT licensed. Upstream Surf's license and notices are retained in `runtime/`. This is not an official Surf or Umbrel release.

@@ -1,17 +1,11 @@
-"""Run inside an isolated test container, never against a real Surf data directory.
-
-Starts a localhost web fixture, pairs a disposable client, changes the dashboard,
-and checks Chromium navigation, identity and pairing persistence across restart.
-"""
+"""Run only inside a fresh disposable Surf test container."""
 import base64
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
 from pathlib import Path
 import ssl
 import subprocess
 import tempfile
-import threading
 import time
 import urllib.error
 import urllib.request
@@ -19,64 +13,47 @@ import urllib.request
 UI = "http://127.0.0.1:18081"
 TLS = "https://127.0.0.1:18080/api/v1/"
 HOME = Path(os.environ.get("SURF_HOME", "/data/surf"))
-authorization = "Basic " + base64.b64encode(("admin:" + os.environ["DASHBOARD_PASSWORD"]).encode()).decode()
 
 
-def request(url, body=None, authenticated=True, origin=UI):
-    headers = {"X-Surf-UI": "1", "Origin": origin, "Content-Type": "application/json"}
-    if authenticated:
-        headers["Authorization"] = authorization
+def request(url, body=None, origin=UI, raw=False):
+    headers = {"X-Surf-Desktop": "1", "Origin": origin, "Content-Type": "application/json"}
     req = urllib.request.Request(url, data=json.dumps(body).encode() if body is not None else None, headers=headers)
     with urllib.request.urlopen(req, context=ssl._create_unverified_context(), timeout=6) as response:
-        raw = response.read()
-        return json.loads(raw) if raw else {}
+        payload = response.read()
+        return payload if raw else json.loads(payload) if payload else {}
 
 
 def ready():
     deadline = time.monotonic() + 90
     while time.monotonic() < deadline:
         try:
-            state = request(UI + "/api/state")
-            if state["ready"]:
-                return state
+            request(UI + "/api/status")
+            return request(UI + "/api/backend/api/v1/server")
         except (OSError, urllib.error.URLError):
-            pass
-        time.sleep(1)
+            time.sleep(1)
     raise AssertionError("Surf did not become ready")
 
 
-class Fixture(BaseHTTPRequestHandler):
-    def do_GET(self):
-        body = b"<!doctype html><title>Home Assistant fixture</title><h1>Dashboard fixture</h1>"
-        self.send_response(200)
-        self.send_header("Content-Type", "text/html")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
-
-    def log_message(self, *args):
-        pass
-
-
-fixture = ThreadingHTTPServer(("127.0.0.1", 0), Fixture)
-threading.Thread(target=fixture.serve_forever, daemon=True).start()
-url = f"http://127.0.0.1:{fixture.server_port}/dashboard-tablet/0"
 state = ready()
-identity = state["server"]["serverID"]
-for path in ("/", "/api/state"):
-    try:
-        request(UI + path, authenticated=False)
-        raise AssertionError("Unauthenticated administration allowed")
-    except urllib.error.HTTPError as error:
-        assert error.code == 401
+identity = state["serverID"]
+private_ui = json.loads((HOME / "desktop-instance.json").read_text())["url"]
+html = request(UI + "/", raw=True)
+assert html == request(private_ui + "/", raw=True)
+assert b'id="pairing-code"' in html
+print("PASS: original Surf HTML is forwarded byte for byte")
+
+for path in ("/", "/api/config", "/api/backend/api/v1/admin/devices"):
+    response = urllib.request.urlopen(UI + path, timeout=6)
+    assert response.status == 200
+    assert response.headers.get("WWW-Authenticate") is None
+    response.close()
 try:
-    request(UI + "/api/pair", {}, origin="https://untrusted.example")
+    request(UI + "/api/restart", {}, origin="https://untrusted.example")
     raise AssertionError("Cross-origin administration allowed")
 except urllib.error.HTTPError as error:
     assert error.code == 403
-print("PASS: setup authentication and CSRF protection")
+print("PASS: interface/API open without login; cross-origin mutations rejected")
 
-# Use a real RSA public key in the same DER format as the iOS client.
 with tempfile.TemporaryDirectory() as temporary:
     public_keys = []
     for index in range(2):
@@ -84,53 +61,44 @@ with tempfile.TemporaryDirectory() as temporary:
         subprocess.run(["openssl", "genpkey", "-algorithm", "RSA", "-pkeyopt", "rsa_keygen_bits:2048", "-out", key],
                        check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         public_keys.append(subprocess.check_output(["openssl", "pkey", "-in", key, "-pubout", "-outform", "DER"]))
-pairing = request(UI + "/api/pair", {})
-client = {"deviceName": "Disposable smoke-test iPad", "publicKey": base64.urlsafe_b64encode(public_keys[0]).decode().rstrip("="), "code": pairing["code"]}
-candidate = request(TLS + "pairing/request", client, authenticated=False)
+pairing = request(UI + "/api/backend/api/v1/admin/pairing/session", {"publicAddress": "192.0.2.10:18080"})
+client = {"deviceName": "Disposable smoke-test client", "publicKey": base64.urlsafe_b64encode(public_keys[0]).decode().rstrip("="), "code": pairing["code"]}
+candidate = request(TLS + "pairing/request", client)
 assert len(candidate["phrase"].split()) == 6
-ui_candidate = request(UI + "/api/state")["candidates"][0]
-assert ui_candidate["phrase"] == candidate["phrase"]
+ui_candidates = request(UI + "/api/backend/api/v1/admin/pairing/candidates")["candidates"]
+assert any(item["phrase"] == candidate["phrase"] for item in ui_candidates)
 try:
-    request(TLS + "pairing/request", {**client, "publicKey": base64.urlsafe_b64encode(public_keys[1]).decode().rstrip("=")}, authenticated=False)
-    raise AssertionError("Pairing code could be reused")
+    request(TLS + "pairing/request", {**client, "publicKey": base64.urlsafe_b64encode(public_keys[1]).decode().rstrip("=")})
+    raise AssertionError("Pairing code could be reused by another client")
 except urllib.error.HTTPError as error:
     assert error.code == 403
-paired = request(TLS + "pairing/confirm/" + candidate["id"], {}, authenticated=False)
+paired = request(TLS + "pairing/confirm/" + candidate["id"], {})
 assert paired["paired"]
-print("PASS: real TLS pairing, single-use code, matching six-word phrase")
+print("PASS: native pairing, QR payload, single-use code and verification phrase")
+assert pairing.get("qrPNG")
 
-descriptor_before = json.loads((HOME / "daemon.json").read_text())
-request(UI + "/api/settings", {"dashboard_url": url, "public_address": "192.168.1.50:18080", "adaptive_video": True})
+before = json.loads((HOME / "daemon.json").read_text())["adminToken"]
+request(UI + "/api/restart", {})
 deadline = time.monotonic() + 90
 while time.monotonic() < deadline:
     try:
-        descriptor = json.loads((HOME / "daemon.json").read_text())
-        if descriptor["adminToken"] != descriptor_before["adminToken"]:
-            state = ready()
+        current = json.loads((HOME / "daemon.json").read_text())
+        if current["adminToken"] != before:
+            assert ready()["serverID"] == identity
             break
     except (OSError, json.JSONDecodeError):
         pass
     time.sleep(1)
 else:
-    raise AssertionError("Settings did not restart Surf")
-assert state["server"]["serverID"] == identity
-assert any(device["id"] == paired["deviceID"] for device in state["devices"])
-assert state["settings"]["dashboard_url"] == url
-print("PASS: dashboard settings restart preserves server identity and paired device")
-
-deadline = time.monotonic() + 30
-while time.monotonic() < deadline:
-    debug_port = int((HOME / "profile/DevToolsActivePort").read_text().splitlines()[0])
-    targets = request(f"http://127.0.0.1:{debug_port}/json/list", authenticated=False)
-    if any(target.get("url") == url and target.get("title") == "Home Assistant fixture" for target in targets):
-        break
-    time.sleep(1)
-else:
-    raise AssertionError("Chromium did not load the dashboard fixture over loopback")
-print("PASS: Chromium renders the localhost dashboard fixture in host mode")
-request(UI + "/api/revoke", {"id": paired["deviceID"]})
-assert not any(device["id"] == paired["deviceID"] for device in request(UI + "/api/state")["devices"])
-request(UI + "/api/pair/cancel", {})
-print("PASS: device revocation and pairing cancellation")
-fixture.shutdown()
-fixture.server_close()
+    raise AssertionError("Native restart did not restart the backend")
+devices_url = UI + "/api/backend/api/v1/admin/devices"
+assert any(device["id"] == paired["deviceID"] for device in request(devices_url)["devices"])
+print("PASS: native restart preserves identity and paired device")
+request(UI + "/api/backend/api/v1/admin/devices/revoke/" + paired["deviceID"], {})
+assert not any(device["id"] == paired["deviceID"] for device in request(devices_url)["devices"])
+req = urllib.request.Request(UI + "/api/backend/api/v1/admin/pairing/session", method="DELETE",
+                             headers={"X-Surf-Desktop": "1", "Origin": UI})
+with urllib.request.urlopen(req, timeout=5) as response:
+    assert response.status == 204
+assert request(UI + "/api/backend/api/v1/admin/logs/sources")
+print("PASS: native device revocation, pairing cancellation and log API")
