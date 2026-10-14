@@ -7,7 +7,7 @@ A community Umbrel package for [Surf](https://github.com/seg6/surf), using its *
 1. Push this repository to GitHub, keeping `umbrel-app-store.yml` at the root.
 2. Add its GitHub URL under **Umbrel → App Store → Community App Stores**.
 3. Install **Surf** from **Surf Community Store**.
-4. Wait for first-start provisioning, then open Surf in Umbrel.
+4. Once Umbrel finishes downloading the image, open Surf.
 
 The original Surf interface opens directly at `http://UMBREL_LAN_IP:18081`, without an app login or Umbrel login. Use its **Settings** to set the public address to `UMBREL_LAN_IP:18080`, then choose **Pair device** under **Paired Devices**. Scan the QR code or enter the address and code in the iOS app, compare the six words, and confirm on the device.
 
@@ -30,9 +30,11 @@ The store ID `surfhome` and app ID `surfhome-surf` remain stable for upgrades; t
 
 ## Runtime requirements
 
-The public Python/Debian base image is digest-pinned. First startup installs Chromium and downloads verified Surf binaries, so outbound access to Debian and GitHub is required. Surf requires Chromium >=148 and can download its own verified managed browser when the installed version is older.
+Compose uses the public, digest-pinned image `ghcr.io/alexmatter1512/surf-umbrel:0.17.0-7`, published for linux/amd64 and linux/arm64. It includes Surf, Chromium >=148, certificates, fonts, gosu, Python and the verified uBlock Origin Lite extension.
 
-Normal restarts reuse installed packages. Container recreation provisions packages again, with release archives cached under `data/runtime`. The optional Dockerfile preinstalls these dependencies for faster startup.
+All dependency downloads and system-package installation happen during the Docker image build. Starting, restarting or recreating the container only prepares writable data directories, copies the bundled extension into its cache if needed, and launches Surf. No dependency downloads are required at runtime. Surf's normal update checks and web browsing may still access the network.
+
+Runtime code is included in the image. The old host-mounted runtime directories are no longer used. Existing Surf data remains at `data/surf`.
 
 | Port | Purpose |
 | --- | --- |
@@ -76,6 +78,9 @@ cached uBlock Origin Lite extension before each Chromium launch. This fixes
 the reserved-filename error when the extension is loaded through CDP, including
 after backend restarts. Chromium receives Surf's original launch arguments.
 
+Upgrade to `0.17.0-7` to use the prebuilt image and stop reinstalling dependencies
+when Umbrel recreates the container. All earlier fixes are included.
+
 ## Development
 
 ```sh
@@ -93,7 +98,7 @@ docker exec -u 1000:1000 surf-package-test python3 /tmp/smoke_container.py
 docker rm -f surf-package-test
 ```
 
-Docker Desktop needs host-network support enabled. To distribute an optional prebuilt image, publish for linux/amd64 and linux/arm64 and update Compose with its public image tag and digest, retaining the runtime mount and entrypoint.
+Docker Desktop needs host-network support enabled. The Dockerfile is the production image definition. `.github/workflows/publish-image.yml` builds both architectures on native GitHub runners and publishes their combined manifest to GHCR. For a new release, update `IMAGE_VERSION` in the workflow, publish the image, then update the Compose image reference with its tag and manifest digest and bump `umbrel-app.yml`. Keep the container package public so Umbrel can pull without registry credentials.
 
 See [VALIDATION.md](VALIDATION.md) for test coverage and [Surf's documentation](https://github.com/seg6/surf/blob/v0.17.0/docs/backend.md) for native features.
 

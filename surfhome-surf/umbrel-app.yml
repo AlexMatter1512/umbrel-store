@@ -4,7 +4,7 @@ name: Surf
 tagline: Bring the modern web to your older iOS devices
 icon: https://raw.githubusercontent.com/seg6/surf/v0.17.0/backend/cmd/surf/surf-icon.png
 category: networking
-version: "0.17.0-6"
+version: "0.17.0-7"
 port: 18081
 description: >-
   Run Surf's modern Chromium browser on Umbrel and stream websites to the native
@@ -18,8 +18,9 @@ description: >-
   and browser profile persist across restarts.
 
 
-  First startup downloads the verified Surf release and installs Chromium and
-  fonts, which can take several minutes. Internet access is required for setup.
+  Surf, Chromium, fonts and the content blocker are included in the Docker image.
+  Starting or recreating the container does not install system packages or
+  download dependencies.
   Supports 64-bit Intel/AMD and ARM Umbrel hosts. The iPad must already have the
   native Surf app installed. Device connections use Surf's own TLS on port 18080.
 developer: seg6
@@ -30,9 +31,9 @@ repo: https://github.com/seg6/surf
 support: https://github.com/seg6/surf/issues
 gallery: []
 releaseNotes: >-
-  Removes generated _metadata directories from the cached uBlock Origin Lite
-  extension before each Chromium launch, fixing reserved-filename errors when
-  Surf loads the unpacked extension. Browser data and the original interface
-  are retained.
+  Uses a prebuilt amd64/arm64 Docker image containing Surf, Chromium, fonts,
+  certificates and uBlock Origin Lite. Removes dependency installation and
+  downloads from startup. Existing Surf data and the original interface are
+  retained.
 dependencies: []
 path: ""

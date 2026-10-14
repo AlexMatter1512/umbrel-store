@@ -2,9 +2,8 @@ version: "3.7"
 
 services:
   server:
-    # A public base image makes this store installable before publishing a custom image.
-    # bootstrap.sh provisions dependencies once per container creation.
-    image: python:3.13-slim-trixie@sha256:3dd7cc108ec1493442514f5c2a871af6af0ec31d768ff6e378a93340c3b3db5f
+    # Prebuilt amd64/arm64 image: all dependencies and runtime files are included.
+    image: ghcr.io/alexmatter1512/surf-umbrel:0.17.0-7@sha256:c9c4d12f112d03cd6d7462e899b6ffd8d40ee3f01ab89c836258bfcc84f14bc1
     network_mode: host
     init: true
     restart: on-failure
@@ -22,12 +21,9 @@ services:
       PYTHONDONTWRITEBYTECODE: "1"
     volumes:
       - ${APP_DATA_DIR}/data:/data
-      # Umbrel refreshes hooks/ on upgrades; arbitrary package directories stay stale.
-      - ${APP_DATA_DIR}/hooks/runtime:/opt/surf-umbrel:ro
-    entrypoint: ["/bin/sh", "/opt/surf-umbrel/bootstrap.sh"]
     healthcheck:
       test: ["CMD", "python3", "/opt/surf-umbrel/healthcheck.py"]
       interval: 30s
       timeout: 5s
-      start_period: 15m
+      start_period: 60s
       retries: 3

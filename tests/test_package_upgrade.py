@@ -12,7 +12,7 @@ UPDATE_PATTERNS = ("docker-compose.yml", "*.template", "exports.sh", "torrc", "h
 
 
 class PackageUpgradeTests(unittest.TestCase):
-    def test_update_replaces_active_runtime_and_preserves_data(self):
+    def test_update_uses_packaged_image_and_preserves_data(self):
         with tempfile.TemporaryDirectory() as temporary:
             installed = Path(temporary)
             legacy = installed / "runtime"
@@ -32,10 +32,10 @@ class PackageUpgradeTests(unittest.TestCase):
                         shutil.copy2(source, destination)
 
             compose = (installed / "docker-compose.yml").read_text()
-            runtime = re.search(r"\$\{APP_DATA_DIR\}/([^:]+):/opt/surf-umbrel:ro", compose).group(1)
-            for filename in ("bootstrap.sh", "proxy.py", "healthcheck.py"):
-                self.assertEqual((installed / runtime / filename).read_bytes(),
-                                 (PACKAGE / runtime / filename).read_bytes())
+            image = re.search(r"^\s+image:\s+(\S+)", compose, re.MULTILINE).group(1)
+            self.assertRegex(image, r"^ghcr\.io/alexmatter1512/surf-umbrel:[^@]+@sha256:[0-9a-f]{64}$")
+            self.assertNotIn("${APP_DATA_DIR}/runtime:", compose)
+            self.assertNotIn("${APP_DATA_DIR}/hooks/runtime:", compose)
             self.assertEqual((data / "identity.pem").read_text(), "existing identity sentinel")
             self.assertEqual((legacy / "bootstrap.sh").read_text(), "stale installed runtime")
 

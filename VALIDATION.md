@@ -1,5 +1,19 @@
 # Validation — 2026-10-04
 
+## Package 0.17.0-7 — 2026-10-14
+
+The production image was built and published successfully for linux/amd64 and
+linux/arm64 on native GitHub runners. Compose pins their combined manifest:
+`sha256:c9c4d12f112d03cd6d7462e899b6ffd8d40ee3f01ab89c836258bfcc84f14bc1`.
+The image includes Chromium, Surf, certificates, fonts, gosu, Python and the
+checksum-verified uBlock Origin Lite extension. The runtime entrypoint has no
+package installation or dependency download path. Existing `/data` is retained;
+host runtime mounts are removed. Registry metadata is available without login.
+No application tests or container smoke runs were performed for this release,
+following the user's earlier instruction to publish without testing.
+
+## Earlier versions
+
 Package `0.17.0-6` adds cleanup of generated uBlock Origin Lite `_metadata`
 directories before Chromium launches. No tests or container runs were performed
 for this change, as explicitly requested. The results below cover prior versions.
