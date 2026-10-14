@@ -1,0 +1,66 @@
+name: Publish Surf image
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - Dockerfile
+      - docker/**
+      - surfhome-surf/hooks/runtime/**
+      - .github/workflows/publish-image.yml
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE: ghcr.io/alexmatter1512/surf-umbrel
+  IMAGE_VERSION: 0.17.0-7
+
+concurrency:
+  group: publish-surf-image
+  cancel-in-progress: false
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and publish native image
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: >-
+          docker buildx build --platform "linux/$ARCH"
+          --tag "$IMAGE:$IMAGE_VERSION-$ARCH"
+          --provenance=false --push .
+
+  manifest:
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish multi-platform manifest
+        run: |
+          docker buildx imagetools create --tag "$IMAGE:$IMAGE_VERSION" \
+            "$IMAGE:$IMAGE_VERSION-amd64" "$IMAGE:$IMAGE_VERSION-arm64"
+          docker buildx imagetools inspect "$IMAGE:$IMAGE_VERSION" >> "$GITHUB_STEP_SUMMARY"
